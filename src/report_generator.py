@@ -1,11 +1,8 @@
 """
-NirogGyan Smart Report Generator
-Generates structured wellness reports for patients
-based on risk scores and lab results.
+NirogGyan Smart Report Generator v2
 """
 
 from datetime import datetime
-
 
 REPORT_SECTIONS = ["summary", "cardiovascular", "diabetes", "recommendations", "followup"]
 
@@ -13,14 +10,6 @@ REPORT_SECTIONS = ["summary", "cardiovascular", "diabetes", "recommendations", "
 def generate_patient_report(patient_id: str, risk_scores: dict, lab_results: dict) -> dict:
     """
     Generates a full wellness report for a patient.
-
-    Args:
-        patient_id: Unique patient identifier
-        risk_scores: Dict containing cardiovascular and diabetes scores
-        lab_results: Dict containing raw lab values
-
-    Returns:
-        dict with keys: status, message, data (report object)
     """
     if not patient_id:
         return {"status": "error", "message": "patient_id is required", "data": None}
@@ -48,7 +37,7 @@ def generate_patient_report(patient_id: str, risk_scores: dict, lab_results: dic
     report["sections"]["recommendations"] = _build_recommendations(risk_scores)
     report["sections"]["followup"] = _build_followup_plan(risk_scores)
 
-    return {"status": "success", "message": "Report generated successfully", "data": report}
+    return report
 
 
 def _build_summary(risk_scores: dict) -> dict:
@@ -98,26 +87,26 @@ def _build_recommendations(risk_scores: dict) -> list:
         recommendations.append({
             "category": "cardiovascular",
             "priority": "urgent",
-            "text": "Consult a cardiologist within 2 weeks. Reduce saturated fat intake and increase aerobic activity.",
+            "text": "Consult a cardiologist within 2 weeks.",
         })
     elif cardio_level == "MODERATE":
         recommendations.append({
             "category": "cardiovascular",
             "priority": "moderate",
-            "text": "Monitor cholesterol levels quarterly. Consider Mediterranean diet.",
+            "text": "Monitor cholesterol levels quarterly.",
         })
 
     if diabetes_level in ("HIGH", "CRITICAL"):
         recommendations.append({
             "category": "diabetes",
             "priority": "urgent",
-            "text": "Consult an endocrinologist immediately. Begin blood sugar monitoring.",
+            "text": "Consult an endocrinologist immediately.",
         })
     elif diabetes_level == "MODERATE":
         recommendations.append({
             "category": "diabetes",
             "priority": "moderate",
-            "text": "Reduce refined carbohydrate intake. Increase physical activity to 150 mins/week.",
+            "text": "Reduce refined carbohydrate intake.",
         })
 
     if not recommendations:
