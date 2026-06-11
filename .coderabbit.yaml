@@ -1,103 +1,57 @@
 language: en
-tone_instructions: Be direct and precise. This is a healthcare SaaS codebase. Flag issues clearly with medical/compliance context where relevant.
+tone_instructions: >
+  This is a healthcare SaaS platform handling real patient diagnostic data.
+  Be direct. Flag compliance and clinical correctness issues with high priority.
 
 reviews:
   profile: assertive
   request_changes_workflow: true
   high_level_summary: true
   poem: false
-  review_status: true
-  collapse_walkthrough: false
+
+  # Global rules — apply to every file in the repo
+  instructions: |
+    This codebase processes patient health data for diagnostic labs.
+    Enforce these rules on every PR regardless of which file is changed:
+
+    1. No real-looking PII (patient names, phone numbers, ID numbers) in source code or tests.
+       Test data must use obviously fake values.
+
+    2. All public API functions must return a dict with exactly three keys:
+       status (str), message (str), data (dict or None).
+       Flag any public function that returns a different shape.
+
+    3. Never allow patient data to be written to logs or print statements.
+
+    4. Input validation must exist at every public function boundary.
+       Flag if a public function removes its None/empty input check.
 
   path_instructions:
+
     - path: "src/risk_calculator.py"
       instructions: |
-        This file computes cardiovascular and diabetes risk scores for patients.
-        Enforce the following rules strictly:
+        CLINICAL RULES — these are medical requirements, not just coding style:
 
-        1. SCORE RANGE: All final risk scores must be clamped to 0-100. Flag any
-           code path where a score could exceed this range or go negative.
+        1. All final risk scores must be clamped to 0-100. A score outside
+           this range is clinically invalid.
 
-        2. NULL SAFETY: Both calculate_cardiovascular_risk() and calculate_diabetes_risk()
-           must validate that patient_data is not None or empty at the start.
-           Flag if this guard is removed.
+        2. Age is a mandatory factor in the cardiovascular risk formula.
+           Removing age weighting changes clinical outcomes — flag immediately.
 
-        3. RETURN TYPE CONTRACT: calculate_cardiovascular_risk() must always return
-           a dict with keys: score (float), risk_level (str), patient_id (str|None).
-           Flag any change that makes it return a plain number or different shape.
+        3. Risk level thresholds are clinically defined and must not change:
+           LOW (0-30), MODERATE (31-60), HIGH (61-80), CRITICAL (81-100).
 
-        4. HDL GUARD: The cholesterol ratio (total_cholesterol / hdl_cholesterol)
-           must always be guarded against division by zero. Flag if hdl <= 0 check
-           is removed.
-
-        5. AGE COMPONENT: The cardiovascular score must include an age-based base
-           component. Flag if age weighting is removed from the formula — this is
-           a clinically significant factor.
-
-        6. PII IN CODE: Flag any hardcoded patient names, phone numbers, or
-           realistic-looking patient IDs in source code. Test data must use
-           obviously fake values (e.g., "TEST_PATIENT", "0000000000").
-
-        7. RISK LEVELS: The mapping must always be LOW(0-30), MODERATE(31-60),
-           HIGH(61-80), CRITICAL(81-100). Flag any change to these thresholds.
-
-    - path: "src/report_generator.py"
-      instructions: |
-        This file generates patient wellness reports sent to patient portals.
-        Enforce the following rules strictly:
-
-        1. API CONTRACT: Every return statement in generate_patient_report() must
-           return a dict with exactly these three keys: status, message, data.
-           Flag any return that omits any of these keys — both success and error
-           paths must follow this shape.
-
-        2. REPORT SECTIONS: The generated report must always include all 5 sections:
-           summary, cardiovascular, diabetes, recommendations, followup.
-           Flag if any section is removed.
-
-        3. REPORT ID FORMAT: report_id must follow the format RPT-{patient_id}-{timestamp}.
-           Flag changes to this format.
-
-        4. RECOMMENDATION PRIORITY: Recommendations must always include a priority
-           field with values: urgent, moderate, or low. Flag if priority is removed.
+        4. calculate_cardiovascular_risk() must return a dict with keys:
+           score, risk_level, patient_id. This is consumed by the report
+           generator — a type change here breaks patient report generation.
 
     - path: "src/lims_handler.py"
       instructions: |
-        This file handles ingestion of lab results from external LIMS vendors.
-        Enforce the following rules strictly:
-
-        1. VENDOR VALIDATION: ingest_lab_results() must always validate the vendor
-           against SUPPORTED_LIMS_VENDORS before processing. Flag if this check
-           is removed or bypassed.
-
-        2. PAYLOAD VALIDATION: _validate_payload() must be called before
-           _normalize_payload(). Flag if validation is skipped.
-
-        3. RESPONSE CONTRACT: All public functions must return a dict with
-           status, message, and data keys.
-
-        4. EMPTY RESULTS: Flag any code path that allows ingestion of a payload
-           with zero lab results — results dict must never be empty.
-
-    - path: "src/patient_validator.py"
-      instructions: |
-        This file validates patient profile data before risk scoring.
-
-        1. AGE BOUNDS: Valid age range is 18-120. Flag changes to these bounds.
-
-        2. CHOLESTEROL RANGES: Flag if physiological range checks are removed for
-           total_cholesterol (100-400), hdl (20-100), ldl (30-300), triglycerides (30-1000).
-
-        3. BLOOD PRESSURE: systolic_bp valid range is 70-250 mmHg. Flag changes.
+        1. Vendor must always be validated against SUPPORTED_LIMS_VENDORS
+           before any processing. Unsupported vendors must be rejected.
+        2. Never ingest a lab result payload with zero test results.
 
     - path: "tests/**"
       instructions: |
-        1. Flag any PR that deletes existing tests without explanation.
-        2. Flag if a new function in src/ has no corresponding test added.
-        3. Flag tests that have no assert statements.
-
-  auto_review:
-    enabled: true
-    drafts: false
-    base_branches:
-      - main
+        1. Flag any PR that removes existing tests without explanation.
+        2. Flag test functions that contain no assert statements.
