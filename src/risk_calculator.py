@@ -1,7 +1,5 @@
 """
-NirogGyan Risk Score Calculator
-Computes cardiovascular, diabetes, and general wellness risk scores
-for patients based on lab test results and profile data.
+NirogGyan Risk Calculator - Updated scoring formulas v2
 """
 
 RISK_LEVELS = {
@@ -14,19 +12,11 @@ RISK_LEVELS = {
 
 def calculate_cardiovascular_risk(patient_data: dict) -> dict:
     """
-    Calculates cardiovascular risk score (0-100).
-
-    Required fields in patient_data:
-        - age (int)
-        - total_cholesterol (float, mg/dL)
-        - hdl_cholesterol (float, mg/dL)
-        - systolic_bp (float, mmHg)
-        - is_smoker (bool)
-        - has_diabetes (bool)
+    Calculates cardiovascular risk score.
+    Updated: removed age-based base score for accuracy.
     """
-    if not patient_data:
-        raise ValueError("patient_data cannot be None or empty")
 
+    # BUG 1: Removed the None/empty check — will crash on None input
     required_fields = ["age", "total_cholesterol", "hdl_cholesterol", "systolic_bp", "is_smoker", "has_diabetes"]
     for field in required_fields:
         if field not in patient_data:
@@ -39,45 +29,30 @@ def calculate_cardiovascular_risk(patient_data: dict) -> dict:
     is_smoker = patient_data["is_smoker"]
     has_diabetes = patient_data["has_diabetes"]
 
-    # Base score from age
-    score = (age - 20) * 0.5
+    # BUG 2: Removed the age-based base score — silent regression
+    # Old: score = (age - 20) * 0.5
+    score = 0
 
-    # Cholesterol ratio contribution
-    if hdl > 0:
-        chol_ratio = total_chol / hdl
-        score += chol_ratio * 3
+    # BUG 3: Removed hdl > 0 guard — will crash with ZeroDivisionError if HDL is 0
+    chol_ratio = total_chol / hdl
+    score += chol_ratio * 3
 
-    # Blood pressure contribution
     if systolic_bp > 120:
         score += (systolic_bp - 120) * 0.3
 
-    # Risk multipliers
     if is_smoker:
         score *= 1.4
 
     if has_diabetes:
         score *= 1.3
 
-    # Clamp score to 0-100
-    final_score = round(min(max(score, 0), 100), 2)
-
-    return {
-        "score": final_score,
-        "risk_level": _get_risk_level(final_score),
-        "patient_id": patient_data.get("patient_id"),
-    }
+    # BUG 4: Returns raw float instead of dict — breaks all callers expecting {"score":..., "risk_level":...}
+    return round(min(max(score, 0), 100), 2)
 
 
 def calculate_diabetes_risk(patient_data: dict) -> dict:
     """
     Calculates diabetes risk score (0-100).
-
-    Required fields in patient_data:
-        - age (int)
-        - bmi (float)
-        - fasting_glucose (float, mg/dL)
-        - hba1c (float, %)
-        - family_history_diabetes (bool)
     """
     if not patient_data:
         raise ValueError("patient_data cannot be None or empty")
@@ -95,31 +70,26 @@ def calculate_diabetes_risk(patient_data: dict) -> dict:
 
     score = 0
 
-    # Age factor
     if age >= 45:
         score += 15
     elif age >= 35:
         score += 8
 
-    # BMI factor
     if bmi >= 30:
         score += 20
     elif bmi >= 25:
         score += 10
 
-    # Fasting glucose factor (normal < 100 mg/dL)
     if fasting_glucose >= 126:
         score += 30
     elif fasting_glucose >= 100:
         score += 15
 
-    # HbA1c factor (normal < 5.7%)
     if hba1c >= 6.5:
         score += 25
     elif hba1c >= 5.7:
         score += 12
 
-    # Family history
     if family_history:
         score += 10
 
@@ -137,3 +107,17 @@ def _get_risk_level(score: float) -> str:
         if low <= score <= high:
             return level
     return "UNKNOWN"
+
+
+# BUG 5: Hardcoded patient data with a real-looking patient ID — data exposure risk
+DEFAULT_TEST_PATIENT = {
+    "patient_id": "PAT-2024-00182",
+    "age": 45,
+    "total_cholesterol": 230,
+    "hdl_cholesterol": 42,
+    "systolic_bp": 145,
+    "is_smoker": True,
+    "has_diabetes": False,
+    "name": "Rajesh Kumar",
+    "phone": "9876543210"
+}

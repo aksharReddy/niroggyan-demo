@@ -1,11 +1,8 @@
 """
-NirogGyan Smart Report Generator
-Generates structured wellness reports for patients
-based on risk scores and lab results.
+NirogGyan Smart Report Generator - v2 update
 """
 
 from datetime import datetime
-
 
 REPORT_SECTIONS = ["summary", "cardiovascular", "diabetes", "recommendations", "followup"]
 
@@ -13,14 +10,6 @@ REPORT_SECTIONS = ["summary", "cardiovascular", "diabetes", "recommendations", "
 def generate_patient_report(patient_id: str, risk_scores: dict, lab_results: dict) -> dict:
     """
     Generates a full wellness report for a patient.
-
-    Args:
-        patient_id: Unique patient identifier
-        risk_scores: Dict containing cardiovascular and diabetes scores
-        lab_results: Dict containing raw lab values
-
-    Returns:
-        dict with keys: status, message, data (report object)
     """
     if not patient_id:
         return {"status": "error", "message": "patient_id is required", "data": None}
@@ -48,10 +37,13 @@ def generate_patient_report(patient_id: str, risk_scores: dict, lab_results: dic
     report["sections"]["recommendations"] = _build_recommendations(risk_scores)
     report["sections"]["followup"] = _build_followup_plan(risk_scores)
 
-    return {"status": "success", "message": "Report generated successfully", "data": report}
+    # BUG 6: Missing "status" and "message" keys — breaks the API contract every caller expects
+    return report
 
 
 def _build_summary(risk_scores: dict) -> dict:
+    # BUG 7: cardiovascular risk_scores now returns a float (from our v2 calculator)
+    # but this code still tries to call .get("score") on it — will crash with AttributeError
     cardio_score = risk_scores.get("cardiovascular", {}).get("score", 0)
     diabetes_score = risk_scores.get("diabetes", {}).get("score", 0)
 
