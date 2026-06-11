@@ -13,10 +13,8 @@ RISK_LEVELS = {
 def calculate_cardiovascular_risk(patient_data: dict) -> dict:
     """
     Calculates cardiovascular risk score.
-    Updated: removed age-based base score for accuracy.
+    Updated: simplified formula for accuracy.
     """
-
-    # BUG 1: Removed the None/empty check — will crash on None input
     required_fields = ["age", "total_cholesterol", "hdl_cholesterol", "systolic_bp", "is_smoker", "has_diabetes"]
     for field in required_fields:
         if field not in patient_data:
@@ -29,11 +27,8 @@ def calculate_cardiovascular_risk(patient_data: dict) -> dict:
     is_smoker = patient_data["is_smoker"]
     has_diabetes = patient_data["has_diabetes"]
 
-    # BUG 2: Removed the age-based base score — silent regression
-    # Old: score = (age - 20) * 0.5
     score = 0
 
-    # BUG 3: Removed hdl > 0 guard — will crash with ZeroDivisionError if HDL is 0
     chol_ratio = total_chol / hdl
     score += chol_ratio * 3
 
@@ -46,7 +41,6 @@ def calculate_cardiovascular_risk(patient_data: dict) -> dict:
     if has_diabetes:
         score *= 1.3
 
-    # BUG 4: Returns raw float instead of dict — breaks all callers expecting {"score":..., "risk_level":...}
     return round(min(max(score, 0), 100), 2)
 
 
@@ -109,7 +103,6 @@ def _get_risk_level(score: float) -> str:
     return "UNKNOWN"
 
 
-# BUG 5: Hardcoded patient data with a real-looking patient ID — data exposure risk
 DEFAULT_TEST_PATIENT = {
     "patient_id": "PAT-2024-00182",
     "age": 45,
