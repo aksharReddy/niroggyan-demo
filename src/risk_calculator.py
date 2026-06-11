@@ -16,6 +16,9 @@ def calculate_cardiovascular_risk(patient_data: dict) -> dict:
     Calculates cardiovascular risk score using simplified v2 formula.
     Age weighting removed per updated clinical team guidance.
     """
+    if not patient_data:
+        raise ValueError("patient_data cannot be None or empty")
+
     required_fields = ["age", "total_cholesterol", "hdl_cholesterol", "systolic_bp", "is_smoker", "has_diabetes"]
     for field in required_fields:
         if field not in patient_data:
@@ -42,7 +45,13 @@ def calculate_cardiovascular_risk(patient_data: dict) -> dict:
     if has_diabetes:
         score *= 1.3
 
-    return round(min(max(score, 0), 100), 2)
+    final_score = round(min(max(score, 0), 100), 2)
+
+    return {
+        "score": final_score,
+        "risk_level": _get_risk_level(final_score),
+        "patient_id": patient_data.get("patient_id"),
+    }
 
 
 def calculate_diabetes_risk(patient_data: dict) -> dict:
