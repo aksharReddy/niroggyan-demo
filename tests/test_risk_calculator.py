@@ -130,6 +130,81 @@ class TestDiabetesRisk:
         with pytest.raises(ValueError):
             calculate_diabetes_risk({})
 
+    def test_none_input_raises_value_error(self):
+        with pytest.raises(ValueError):
+            calculate_diabetes_risk(None)
+
+    def test_missing_required_field_raises_key_error(self):
+        patient = {
+            "patient_id": "P010",
+            "age": 40,
+            "bmi": 24.0,
+            "fasting_glucose": 90.0,
+            "family_history_diabetes": False,
+        }
+        with pytest.raises(KeyError):
+            calculate_diabetes_risk(patient)
+
+    def test_age_threshold_44_vs_45_differs(self):
+        base = {
+            "patient_id": "P011",
+            "bmi": 22.0,
+            "fasting_glucose": 88.0,
+            "hba1c": 5.2,
+            "family_history_diabetes": False,
+        }
+        result_44 = calculate_diabetes_risk({**base, "age": 44})
+        result_45 = calculate_diabetes_risk({**base, "age": 45})
+        assert result_44["score"] != result_45["score"]
+
+    def test_bmi_threshold_24_9_vs_25_0_differs(self):
+        base = {
+            "patient_id": "P012",
+            "age": 30,
+            "fasting_glucose": 88.0,
+            "hba1c": 5.2,
+            "family_history_diabetes": False,
+        }
+        result_below = calculate_diabetes_risk({**base, "bmi": 24.9})
+        result_at = calculate_diabetes_risk({**base, "bmi": 25.0})
+        assert result_below["score"] != result_at["score"]
+
+    def test_fasting_glucose_threshold_99_vs_100_differs(self):
+        base = {
+            "patient_id": "P013",
+            "age": 30,
+            "bmi": 22.0,
+            "hba1c": 5.2,
+            "family_history_diabetes": False,
+        }
+        result_99 = calculate_diabetes_risk({**base, "fasting_glucose": 99.0})
+        result_100 = calculate_diabetes_risk({**base, "fasting_glucose": 100.0})
+        assert result_99["score"] != result_100["score"]
+
+    def test_all_maximum_risk_factors_clamped_at_100(self):
+        patient = {
+            "patient_id": "P014",
+            "age": 80,
+            "bmi": 45.0,
+            "fasting_glucose": 200.0,
+            "hba1c": 12.0,
+            "family_history_diabetes": True,
+        }
+        result = calculate_diabetes_risk(patient)
+        assert result["score"] == 100
+
+    def test_all_minimum_values_is_low_risk(self):
+        patient = {
+            "patient_id": "P015",
+            "age": 20,
+            "bmi": 18.0,
+            "fasting_glucose": 80.0,
+            "hba1c": 5.0,
+            "family_history_diabetes": False,
+        }
+        result = calculate_diabetes_risk(patient)
+        assert result["risk_level"] == "LOW"
+
 
 class TestRiskLevelMapping:
 
