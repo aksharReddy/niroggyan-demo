@@ -26,6 +26,12 @@ reviews:
     4. Input validation must exist at every public function boundary.
        Flag if a public function removes its None/empty input check.
 
+    5. Always read the PR title and description carefully.
+       If the description lists features, functions, or behaviours that should
+       be implemented, cross-check them against the actual code changes.
+       If any listed item is not present in the diff, flag it explicitly as
+       "Missing implementation: X was described but not found in the code."
+
   path_instructions:
 
     - path: "src/risk_calculator.py"
