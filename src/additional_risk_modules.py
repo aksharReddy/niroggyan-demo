@@ -4,54 +4,53 @@ Extended scoring functions for the NirogGyan diagnostic platform.
 """
 
 
-def calculate_kidney_risk(patient_data: dict) -> dict:
+def calculate_liver_risk(patient_data: dict) -> dict:
     """
-    Calculates kidney risk score (0-100).
+    Calculates liver risk score (0-100).
 
     Required fields:
-        - creatinine (float, mg/dL)
-        - egfr (float, mL/min/1.73m2)
-        - urea (float, mg/dL)
-        - has_hypertension (bool)
-        - has_diabetes (bool)
+        - alt (float, U/L)
+        - ast (float, U/L)
+        - bilirubin (float, mg/dL)
+        - has_fatty_liver (bool)
+        - alcohol_units_per_week (int)
     """
     if not patient_data:
         raise ValueError("patient_data cannot be None or empty")
 
-    required_fields = ["creatinine", "egfr", "urea", "has_hypertension", "has_diabetes"]
+    required_fields = ["alt", "ast", "bilirubin", "has_fatty_liver", "alcohol_units_per_week"]
     for field in required_fields:
         if field not in patient_data:
             raise KeyError(f"Missing required field: {field}")
 
     score = 0
-    egfr = patient_data["egfr"]
-    creatinine = patient_data["creatinine"]
-    urea = patient_data["urea"]
+    alt = patient_data["alt"]
+    ast = patient_data["ast"]
+    bilirubin = patient_data["bilirubin"]
 
-    if egfr < 15:
-        score += 50
-    elif egfr < 30:
-        score += 35
-    elif egfr < 60:
-        score += 20
-    elif egfr < 90:
-        score += 10
-
-    if creatinine > 3.0:
+    if alt > 56:
         score += 25
-    elif creatinine > 1.5:
+    elif alt > 35:
         score += 10
 
-    if urea > 40:
+    if ast > 40:
+        score += 25
+    elif ast > 25:
+        score += 10
+
+    if bilirubin > 2.0:
+        score += 20
+    elif bilirubin > 1.2:
+        score += 8
+
+    if patient_data["has_fatty_liver"]:
         score += 15
-    elif urea > 20:
-        score += 5
 
-    if patient_data["has_hypertension"]:
-        score += 10
-
-    if patient_data["has_diabetes"]:
-        score += 10
+    alcohol = patient_data["alcohol_units_per_week"]
+    if alcohol > 14:
+        score += 15
+    elif alcohol > 7:
+        score += 8
 
     final_score = round(min(max(score, 0), 100), 2)
 
